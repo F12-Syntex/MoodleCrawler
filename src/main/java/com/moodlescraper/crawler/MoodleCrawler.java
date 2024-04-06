@@ -1,9 +1,14 @@
 package com.moodlescraper.crawler;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+
+import com.moodlescraper.logger.LoggerFactory;
 
 import lombok.Data;
 
@@ -13,6 +18,8 @@ public class MoodleCrawler {
     private final String COOKIE;
     private final String MOODLE_PAGE;
 
+    private final Logger logger;
+
     /**
      * @param COOKIE      The session key to scrape the moodle page with
      * @param MOODLE_PAGE the page url of the moodle pages to scrape.
@@ -20,25 +27,34 @@ public class MoodleCrawler {
     public MoodleCrawler(String COOKIE, String MOODLE_PAGE) {
         this.COOKIE = COOKIE;
         this.MOODLE_PAGE = MOODLE_PAGE;
+
+        this.logger = LoggerFactory.buildDefaultLogger(this.getClass().getName());
     }
 
-    public void scrape() {
+    public List<MoodleCourse> scrape() {
+        List<MoodleCourse> courses = new ArrayList<>();
         try {
-            // Include the session key in the URL
             String url = this.MOODLE_PAGE;
+            this.logger.info("Crawling \"" + this.MOODLE_PAGE + "\"");
 
             Document document = Jsoup.connect(url).header("Cookie", COOKIE).get();
 
-
-
-            //print all then links on the page
             document.select("a").forEach(link -> {
-                System.out.println(link.attr("href"));
+                String pageUrl = link.attr("href");
+                if (pageUrl.contains("/view.php?id=")) {
+                    MoodleCourse course = new MoodleCourse(pageUrl);
+                    courses.add(course);
+                }
             });
 
+            this.logger.info("Found " + courses.size() + " courses");
+
+            return courses;
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        return courses;
     }
 
 }
