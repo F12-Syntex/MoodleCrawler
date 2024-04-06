@@ -45,7 +45,23 @@ public class LoggerFactory {
         consoleHandler.setFormatter(new LoggingFormatter());
         logger.addHandler(consoleHandler);
         logger.setUseParentHandlers(false);
-        
+
+        return logger;
+    }
+
+    /**
+     * Build a logger with the given name and log entries if logEntries is true
+     * 
+     * @param name the name of the logger
+     * @return
+     */
+    public static Logger buildDefaultLogger() {
+        Logger logger = Logger.getAnonymousLogger();
+        Handler consoleHandler = new ConsoleHandler();
+        consoleHandler.setFormatter(new LoggingFormatter());
+        logger.addHandler(consoleHandler);
+        logger.setUseParentHandlers(false);
+
         return logger;
     }
 
