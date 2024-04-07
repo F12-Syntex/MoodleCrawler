@@ -1,5 +1,7 @@
 package com.moodlescraper.launcher;
 
+import java.io.File;
+
 import com.moodlescraper.module.MoodleCourse;
 
 public class MoodleScraper {
@@ -14,7 +16,8 @@ public class MoodleScraper {
         MoodleCourse randomCourse = new MoodleCourse("https://moodle.kent.ac.uk/2023/course/view.php?id=897",
                 SESSION_KEY);
                 
-        randomCourse.install();
+        File isntallationFolder = new File("C:\\Users\\synte\\OneDrive - University of Kent\\Desktop\\moodle");
+        randomCourse.install(isntallationFolder);
     }
 
 }
