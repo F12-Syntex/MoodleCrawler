@@ -1,8 +1,5 @@
 package com.moodlescraper.launcher;
 
-import java.util.List;
-
-import com.moodlescraper.crawler.MoodleCrawler;
 import com.moodlescraper.module.MoodleCourse;
 
 public class MoodleScraper {
@@ -11,11 +8,13 @@ public class MoodleScraper {
         final String MOODLE_PAGE = args[0];
         final String SESSION_KEY = args[1];
 
-        MoodleCrawler crawler = new MoodleCrawler(SESSION_KEY, MOODLE_PAGE);
-        List<MoodleCourse> courses = crawler.scrape();
+        // MoodleCrawler crawler = new MoodleCrawler(SESSION_KEY, MOODLE_PAGE);
+        // List<MoodleCourse> courses = crawler.scrape();
 
-        MoodleCourse firstCourse = courses.get(0);
-        firstCourse.scrape();
+        MoodleCourse randomCourse = new MoodleCourse("https://moodle.kent.ac.uk/2023/course/view.php?id=897",
+                SESSION_KEY);
+                
+        randomCourse.install();
     }
 
 }

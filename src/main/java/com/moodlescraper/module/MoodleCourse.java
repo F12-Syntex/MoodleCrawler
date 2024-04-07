@@ -17,38 +17,37 @@ import lombok.Data;
 public class MoodleCourse {
 
     private String moodleCourseUrl;
-    private String sessionKey;
+    private final String COOKIE;
 
     private Logger logger;
 
-    public MoodleCourse(String moodleCourseUrl, String sessionKey) {
+    public MoodleCourse(String moodleCourseUrl, String COOKIE) {
         this.moodleCourseUrl = moodleCourseUrl;
-        this.sessionKey = sessionKey;
+        this.COOKIE = COOKIE;
         this.logger = LoggerFactory.buildDefaultLogger();
     }
 
-    public MoodleCrawler scrape() {
+    public MoodleCrawler install() {
         try {
-            Document document = Jsoup.connect(this.moodleCourseUrl).get();
+            Document document = Jsoup.connect(this.moodleCourseUrl).cookie("Cookie", this.COOKIE).get();
 
-            // Get all headers
-            Elements headers = document.select("h1, h2, h3, h4, h5, h6");
-            for (Element header : headers) {
-                System.out.println("Header: " + header.text());
+            System.out.println(this.COOKIE);
+
+            System.out.println(document.title());
+
+            //find every image/document/file/video in the page, and print it's url and all the headers/sections for it
+            Elements resources = document.select("a[href*=resource]");
+
+            for (Element resource : resources) {
+                String resourceUrl = resource.attr("href");
+                logger.info("Resource URL: " + resourceUrl);
+
+                Element resourceSection = resource.parent().parent().parent().parent().parent().parent().parent().parent();
+                logger.info("Resource Section: " + resourceSection.text());
             }
 
-            // Get all links
-            Elements links = document.select("a[href]");
-            for (Element link : links) {
-                System.out.println("Link: " + link.attr("href"));
-            }
 
-            // Get all documents (assuming documents are represented by <a> tags with a
-            // specific class)
-            Elements documents = document.select("a.document");
-            for (Element doc : documents) {
-                System.out.println("Document: " + doc.attr("href"));
-            }
+
 
         } catch (IOException e) {
             e.printStackTrace();
