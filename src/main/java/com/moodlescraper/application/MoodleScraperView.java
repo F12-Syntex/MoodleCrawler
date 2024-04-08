@@ -2,10 +2,15 @@ package com.moodlescraper.application;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -37,12 +42,23 @@ public class MoodleScraperView extends JFrame {
 
     private JButton downloadButton;
 
-    // Add these instance variables to the MoodleScraperView class
+    private File downloadDirectory;
+
     private JProgressBar progressBar;
     private JLabel currentDownloadLabel;
 
+    private long totalBytesDownloaded = 1;
+    private long downloadTimeinMs = 0;
+    private long downloadedFiles = 0;
+
+    private long filesToDownload = 0;
+
+    private JLabel etaLabel;
+
     public MoodleScraperView(String SESSION_KEY) {
         this.SESSION_KEY = SESSION_KEY;
+
+        this.downloadDirectory = new File("C:\\Users\\synte\\OneDrive - University of Kent\\Desktop\\moodle");
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setTitle("Moodle Scraper");
@@ -73,12 +89,14 @@ public class MoodleScraperView extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(new Color(18, 30, 49));
 
-        JPanel searchPanel = new JPanel();
+        JPanel searchPanel = new JPanel(new BorderLayout());
         searchPanel.setBackground(new Color(18, 30, 49));
         urlField = new JTextField(
-                "https://moodle.kent.ac.uk/2023/course/index.php?categoryid=3&browse=courses&perpage=1000&page=0", 50);
+                "https://moodle.kent.ac.uk/2023/course/index.php?categoryid=3&browse=courses&perpage=1000&page=0");
         urlField.setForeground(Color.WHITE);
         urlField.setBackground(new Color(64, 64, 64));
+        urlField.setColumns(30); // Set the initial number of columns
+        searchPanel.add(urlField, BorderLayout.CENTER); // Add the urlField to the center of the BorderLayout
         JButton searchButton = new JButton("Search");
         searchButton.setForeground(Color.WHITE);
         searchButton.setBackground(new Color(64, 64, 64));
@@ -89,9 +107,21 @@ public class MoodleScraperView extends JFrame {
                 performSearch(url);
             }
         });
-        searchPanel.add(urlField);
-        searchPanel.add(searchButton);
+        searchPanel.add(searchButton, BorderLayout.EAST); // Add the searchButton to the east of the BorderLayout
         mainPanel.add(searchPanel, BorderLayout.NORTH);
+
+        // Add a component listener to the main panel to adjust the urlField's width
+        mainPanel.addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentResized(java.awt.event.ComponentEvent evt) {
+                int width = mainPanel.getWidth() - searchButton.getWidth() - 20; // Subtract the searchButton's width
+                                                                                 // and some padding
+                urlField.setColumns(width / urlField.getFontMetrics(urlField.getFont()).charWidth('W')); // Set the
+                                                                                                         // number of
+                                                                                                         // columns
+                                                                                                         // based on the
+                                                                                                         // panel width
+            }
+        });
 
         rootNode = new DefaultMutableTreeNode("Courses");
         treeModel = new DefaultTreeModel(rootNode);
@@ -113,16 +143,50 @@ public class MoodleScraperView extends JFrame {
             }
         });
 
-        JPanel downloadPanel = new JPanel(new BorderLayout());
+        // In the MoodleScraperView constructor
+        JPanel downloadPanel = new JPanel(new GridBagLayout());
         downloadPanel.setBackground(new Color(40, 40, 40));
+
+        JPanel progressPanel = new JPanel();
+        progressPanel.setLayout(new BoxLayout(progressPanel, BoxLayout.Y_AXIS));
+        progressPanel.setOpaque(false);
+
         progressBar = new JProgressBar();
-        progressBar.setForeground(new Color(0, 255, 127)); // Change the color of the progress bar to a bright green
+        progressBar.setForeground(new Color(0, 200, 0));
         progressBar.setBackground(Color.gray.darker());
+        progressBar.setStringPainted(true);
+        progressBar.setString("");
+
         currentDownloadLabel = new JLabel();
         currentDownloadLabel.setForeground(new Color(200, 200, 200));
-        downloadPanel.add(progressBar, BorderLayout.CENTER);
-        downloadPanel.add(currentDownloadLabel, BorderLayout.SOUTH);
-        downloadPanel.add(downloadButton, BorderLayout.EAST);
+
+        etaLabel = new JLabel();
+        etaLabel.setForeground(new Color(200, 200, 200));
+
+        progressPanel.add(currentDownloadLabel);
+        progressPanel.add(progressBar);
+        progressPanel.add(etaLabel);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        downloadPanel.add(progressPanel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.0;
+        downloadButton = new JButton("Download");
+        downloadButton.setForeground(Color.WHITE);
+        downloadButton.setBackground(new Color(64, 64, 64));
+        downloadButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                downloadSelectedCourses();
+            }
+        });
+        downloadPanel.add(downloadButton, gbc);
+
         mainPanel.add(downloadPanel, BorderLayout.SOUTH);
 
         add(mainPanel);
@@ -171,6 +235,11 @@ public class MoodleScraperView extends JFrame {
 
                         MoodleCourseData data = course.getMetaData();
 
+                        totalSections += data.getPastpapers().size();
+                        totalSections += data.getResourceFiles().size();
+
+                        filesToDownload = data.getPastpapers().size() + data.getResourceFiles().size();
+
                         // Download name section
                         completedSections++;
                         updateProgress(completedSections, totalSections);
@@ -184,12 +253,12 @@ public class MoodleScraperView extends JFrame {
                         // Download files section
                         completedSections++;
                         updateProgress(completedSections, totalSections);
-                        downloadFilesSection(data.getResourceFiles(), node);
+                        completedSections += downloadFilesSection(data.getResourceFiles(), node, completedSections, totalSections);
 
                         // Download past papers section
                         completedSections++;
                         updateProgress(completedSections, totalSections);
-                        downloadPastpapersSection(data.getPastpapers(), node);
+                        completedSections += downloadPastpapersSection(data.getPastpapers(), node, completedSections, totalSections);
 
                         treeModel.reload(node);
                     }
@@ -213,28 +282,89 @@ public class MoodleScraperView extends JFrame {
         node.add(section);
     }
 
-    private void downloadFilesSection(List<ResourceFile> files, DefaultMutableTreeNode node) {
+    private int downloadFilesSection(List<ResourceFile> files, DefaultMutableTreeNode node, int completedSections,
+            int totalSections) {
         DefaultMutableTreeNode filesSection = new DefaultMutableTreeNode("Files");
         for (ResourceFile file : files) {
             System.out.println("Downloading file: " + file.getName());
             currentDownloadLabel.setText("Downloading file: " + file.getName());
             DefaultMutableTreeNode fileNode = new DefaultMutableTreeNode(file.getName());
             filesSection.add(fileNode);
+
+            try {
+                downloadFileForFilesOrPastPaper(file);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            completedSections++;
+            updateProgress(completedSections, totalSections);
         }
         node.add(filesSection);
+        return completedSections;
     }
 
-    private void downloadPastpapersSection(List<ResourceFile> pastpapers, DefaultMutableTreeNode node) {
+    public void downloadFileForFilesOrPastPaper(ResourceFile file) throws IOException{
+        long startTime = System.currentTimeMillis();
+        File downloadedFile = file.install(downloadDirectory);
+        long endTime = System.currentTimeMillis();
+
+        downloadTimeinMs += endTime - startTime;
+        
+        if(downloadedFile != null){
+            totalBytesDownloaded += downloadedFile.length();
+        }
+
+        downloadedFiles++;
+        filesToDownload--;
+
+        etaLabel.setText("ETA: " + getEtaForNFile(filesToDownload));
+    }
+
+    private String getEtaToDownloadFile(long fileSize){
+        long downloadSpeed = totalBytesDownloaded / downloadTimeinMs;
+        long eta = fileSize / downloadSpeed;
+        return prettyTimeFromMilli(eta);
+    }
+
+    private String getEtaForNFile(long files){
+        long averageFileSize = totalBytesDownloaded / downloadedFiles;
+        long downloadSpeed = totalBytesDownloaded / downloadTimeinMs;
+        long eta = (averageFileSize * files) / downloadSpeed;
+        return prettyTimeFromMilli(eta);
+    }
+
+    private String prettyTimeFromMilli(long milli){
+        long seconds = milli / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        return String.format("%d hours, %d minutes, %d seconds", hours, minutes % 60, seconds % 60);
+    }
+
+    private int downloadPastpapersSection(List<ResourceFile> pastpapers, DefaultMutableTreeNode node,
+            int completedSections, int totalSections) {
         DefaultMutableTreeNode pastpapersSection = new DefaultMutableTreeNode("Past Papers");
         for (ResourceFile pastpaper : pastpapers) {
             DefaultMutableTreeNode pastpaperNode = new DefaultMutableTreeNode(pastpaper.getName());
             pastpapersSection.add(pastpaperNode);
+
+            try {
+                downloadFileForFilesOrPastPaper(pastpaper);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            completedSections++;
+            updateProgress(completedSections, totalSections);
         }
+
         node.add(pastpapersSection);
+        return completedSections;
     }
 
     private void updateProgress(int completedSections, int totalSections) {
         int progress = (int) ((double) completedSections / totalSections * 100);
         progressBar.setValue(progress);
+        progressBar.setString(progress + "%"); // Display the progress percentage on the progress bar
     }
 }

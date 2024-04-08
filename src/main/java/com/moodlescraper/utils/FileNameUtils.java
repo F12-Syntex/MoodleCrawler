@@ -10,6 +10,8 @@ public class FileNameUtils {
 
     public static String formatName(String name) {
         String folderName = name.toString().replaceAll("[^a-zA-Z0-9.-[']]", " ").replaceAll("\\s+", " ").trim();
+        //replace backslashes with underscores
+        folderName = folderName.replaceAll("\\\\", "/");
         return folderName;
     }
 

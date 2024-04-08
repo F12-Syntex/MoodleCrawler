@@ -1,11 +1,6 @@
 package com.moodlescraper.launcher;
 
-import java.util.List;
-
 import com.moodlescraper.application.MoodleScraperView;
-import com.moodlescraper.crawler.MoodleCrawler;
-import com.moodlescraper.module.MoodleCourse;
-import com.moodlescraper.utils.FileNameUtils;
 
 public class MoodleScraper {
 
@@ -25,7 +20,15 @@ public class MoodleScraper {
         //         SESSION_KEY);
                 
         // File isntallationFolder = new File("C:\\Users\\synte\\OneDrive - University of Kent\\Desktop\\moodle");
-        // randomCourse.install(isntallationFolder);
+        // // randomCourse.install(isntallationFolder);
+        // try {
+        //     randomCourse.getMetaData().getResourceFiles().get(0).install(isntallationFolder);
+        // } catch (IOException e) {
+        //     // TODO Auto-generated catch block
+        //     e.printStackTrace();
+        // }
+
+        
 
         // randomCourse.getMetaData();
         MoodleScraperView view = new MoodleScraperView(SESSION_KEY);

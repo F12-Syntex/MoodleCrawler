@@ -1,5 +1,6 @@
 package com.moodlescraper.module;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,6 +54,11 @@ public class MoodleCourse {
                 if (linkUrl.contains("pastpaper/")) {
                     Document pastpaperDocument = Jsoup.connect(linkUrl).cookie("Cookie", this.COOKIE).get();
                     pastpapers.addAll(this.getAllFilesInPage(pastpaperDocument));
+
+                    //set the heading for the pastpapers to be PastPapers
+                    for (ResourceFile pastpaper : pastpapers) {
+                        pastpaper.setHeading("PastPapers" + File.separator + pastpaper.getName());
+                    }
                 }
             }
 
@@ -76,7 +82,9 @@ public class MoodleCourse {
         // print the resource and it's heading
         for (Element resource : resources) {
             String resourceUrl = resource.attr("abs:href");
-            ResourceFile resourceFile = new ResourceFile(resourceUrl, resource.text(),
+
+            //get the file extention from the resource
+            ResourceFile resourceFile = new ResourceFile(this, resourceUrl, resource.text(),
                     headingMap.getOrDefault(resourceUrl, resource.text()));
             files.add(resourceFile);
         }
@@ -87,7 +95,7 @@ public class MoodleCourse {
             if (pastpaperUrl.contains("course.php")) {
                 continue;
             }
-            ResourceFile pastpaperFile = new ResourceFile(pastpaperUrl, pastpaper.text(),
+            ResourceFile pastpaperFile = new ResourceFile(this, pastpaperUrl, pastpaper.text(),
                     headingMap.getOrDefault(pastpaperUrl, pastpaper.text()));
             files.add(pastpaperFile);
         }
