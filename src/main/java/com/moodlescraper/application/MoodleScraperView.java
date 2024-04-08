@@ -36,6 +36,8 @@ public class MoodleScraperView extends JFrame {
 
     private String SESSION_KEY;
     private JTextField urlField;
+    private JTextField cookieField;
+    private JTextField filePathField;
     private JTree courseTree;
     private DefaultTreeModel treeModel;
     private DefaultMutableTreeNode rootNode;
@@ -46,6 +48,8 @@ public class MoodleScraperView extends JFrame {
 
     private JProgressBar progressBar;
     private JLabel currentDownloadLabel;
+
+    private long downloadedSections = 0;
 
     private long totalBytesDownloaded = 1;
     private long downloadTimeinMs = 0;
@@ -66,8 +70,9 @@ public class MoodleScraperView extends JFrame {
         setLocationRelativeTo(null);
 
         // Set the look and feel to a dark theme
+        // Set the look and feel to a dark theme
         try {
-            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+            UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsClassicLookAndFeel");
             UIManager.put("control", new Color(64, 64, 64));
             UIManager.put("info", new Color(128, 128, 128));
             UIManager.put("nimbusBase", new Color(18, 30, 49));
@@ -82,6 +87,11 @@ public class MoodleScraperView extends JFrame {
             UIManager.put("nimbusSelectedText", new Color(255, 255, 255));
             UIManager.put("nimbusSelectionBackground", new Color(104, 93, 156));
             UIManager.put("text", new Color(230, 230, 230));
+
+            // Set the tree view background color
+            UIManager.put("Tree.textBackground", new Color(18, 30, 49));
+            UIManager.put("Tree.selectionBackground", new Color(104, 93, 156));
+            UIManager.put("Tree.textForeground", new Color(255, 255, 255));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -89,14 +99,60 @@ public class MoodleScraperView extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(new Color(18, 30, 49));
 
-        JPanel searchPanel = new JPanel(new BorderLayout());
-        searchPanel.setBackground(new Color(18, 30, 49));
+        JPanel inputPanel = new JPanel(new GridBagLayout());
+        inputPanel.setBackground(new Color(18, 30, 49));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new java.awt.Insets(5, 5, 5, 5);
+
+        JLabel urlLabel = new JLabel("URL:");
+        urlLabel.setForeground(Color.WHITE);
+        inputPanel.add(urlLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
         urlField = new JTextField(
                 "https://moodle.kent.ac.uk/2023/course/index.php?categoryid=3&browse=courses&perpage=1000&page=0");
         urlField.setForeground(Color.WHITE);
         urlField.setBackground(new Color(64, 64, 64));
-        urlField.setColumns(30); // Set the initial number of columns
-        searchPanel.add(urlField, BorderLayout.CENTER); // Add the urlField to the center of the BorderLayout
+        inputPanel.add(urlField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0.0;
+        JLabel cookieLabel = new JLabel("Cookie:");
+        cookieLabel.setForeground(Color.WHITE);
+        inputPanel.add(cookieLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        cookieField = new JTextField();
+        cookieField.setText(SESSION_KEY);
+        cookieField.setForeground(Color.WHITE);
+        cookieField.setBackground(new Color(64, 64, 64));
+        inputPanel.add(cookieField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.weightx = 0.0;
+        JLabel filePathLabel = new JLabel("File Path:");
+        filePathLabel.setForeground(Color.WHITE);
+        inputPanel.add(filePathLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        filePathField = new JTextField("C:\\Users\\synte\\OneDrive - University of Kent\\Desktop\\moodle");
+        filePathField.setForeground(Color.WHITE);
+        filePathField.setBackground(new Color(64, 64, 64));
+        inputPanel.add(filePathField, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 3;
+        gbc.weightx = 0.0;
         JButton searchButton = new JButton("Search");
         searchButton.setForeground(Color.WHITE);
         searchButton.setBackground(new Color(64, 64, 64));
@@ -104,44 +160,14 @@ public class MoodleScraperView extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String url = urlField.getText();
-                performSearch(url);
+                String cookie = cookieField.getText();
+                String filePath = filePathField.getText();
+                performSearch(url, cookie, filePath);
             }
         });
-        searchPanel.add(searchButton, BorderLayout.EAST); // Add the searchButton to the east of the BorderLayout
-        mainPanel.add(searchPanel, BorderLayout.NORTH);
+        inputPanel.add(searchButton, gbc);
 
-        // Add a component listener to the main panel to adjust the urlField's width
-        mainPanel.addComponentListener(new java.awt.event.ComponentAdapter() {
-            public void componentResized(java.awt.event.ComponentEvent evt) {
-                int width = mainPanel.getWidth() - searchButton.getWidth() - 20; // Subtract the searchButton's width
-                                                                                 // and some padding
-                urlField.setColumns(width / urlField.getFontMetrics(urlField.getFont()).charWidth('W')); // Set the
-                                                                                                         // number of
-                                                                                                         // columns
-                                                                                                         // based on the
-                                                                                                         // panel width
-            }
-        });
-
-        rootNode = new DefaultMutableTreeNode("Courses");
-        treeModel = new DefaultTreeModel(rootNode);
-        courseTree = new JTree(treeModel);
-        courseTree.setBackground(new Color(18, 30, 49));
-        courseTree.setForeground(Color.WHITE);
-        courseTree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
-        JScrollPane scrollPane = new JScrollPane(courseTree);
-        scrollPane.getViewport().setBackground(new Color(18, 30, 49));
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
-
-        downloadButton = new JButton("Download");
-        downloadButton.setForeground(Color.WHITE);
-        downloadButton.setBackground(new Color(64, 64, 64));
-        downloadButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                downloadSelectedCourses();
-            }
-        });
+        mainPanel.add(inputPanel, BorderLayout.NORTH);
 
         // In the MoodleScraperView constructor
         JPanel downloadPanel = new JPanel(new GridBagLayout());
@@ -167,15 +193,22 @@ public class MoodleScraperView extends JFrame {
         progressPanel.add(progressBar);
         progressPanel.add(etaLabel);
 
-        GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         downloadPanel.add(progressPanel, gbc);
 
-        gbc.gridx = 1;
-        gbc.weightx = 0.0;
+        rootNode = new DefaultMutableTreeNode("Courses");
+        treeModel = new DefaultTreeModel(rootNode);
+        courseTree = new JTree(treeModel);
+        courseTree.setBackground(new Color(18, 30, 49));
+        courseTree.setForeground(Color.WHITE);
+        courseTree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
+        JScrollPane scrollPane = new JScrollPane(courseTree);
+        scrollPane.getViewport().setBackground(new Color(18, 30, 49));
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
         downloadButton = new JButton("Download");
         downloadButton.setForeground(Color.WHITE);
         downloadButton.setBackground(new Color(64, 64, 64));
@@ -185,6 +218,11 @@ public class MoodleScraperView extends JFrame {
                 downloadSelectedCourses();
             }
         });
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
         downloadPanel.add(downloadButton, gbc);
 
         mainPanel.add(downloadPanel, BorderLayout.SOUTH);
@@ -214,6 +252,8 @@ public class MoodleScraperView extends JFrame {
             return;
         }
 
+        this.downloadedSections = 0;
+
         progressBar.setValue(0);
         progressBar.setStringPainted(true);
         currentDownloadLabel.setText("Downloading...");
@@ -232,6 +272,12 @@ public class MoodleScraperView extends JFrame {
                         String name = FileNameUtils.makeFolderNameSafe(course.getCourseName());
                         System.out.println("Downloading course: " + name);
                         currentDownloadLabel.setText("Downloading course: " + name);
+
+                        downloadTimeinMs = 0;
+                        downloadedFiles = 0;
+                        totalBytesDownloaded = 1;
+                        filesToDownload = 0;
+                        completedSections = 0;
 
                         MoodleCourseData data = course.getMetaData();
 
@@ -253,14 +299,17 @@ public class MoodleScraperView extends JFrame {
                         // Download files section
                         completedSections++;
                         updateProgress(completedSections, totalSections);
-                        completedSections += downloadFilesSection(data.getResourceFiles(), node, completedSections, totalSections);
+                        completedSections += downloadFilesSection(data.getResourceFiles(), node, completedSections,
+                                totalSections);
 
                         // Download past papers section
                         completedSections++;
                         updateProgress(completedSections, totalSections);
-                        completedSections += downloadPastpapersSection(data.getPastpapers(), node, completedSections, totalSections);
+                        completedSections += downloadPastpapersSection(data.getPastpapers(), node, completedSections,
+                                totalSections);
 
                         treeModel.reload(node);
+                        downloadedSections++;
                     }
                 }
 
@@ -280,6 +329,21 @@ public class MoodleScraperView extends JFrame {
     private void downloadSection(String sectionName, DefaultMutableTreeNode node) {
         DefaultMutableTreeNode section = new DefaultMutableTreeNode(sectionName);
         node.add(section);
+    }
+
+    private void performSearch(String url, String cookie, String filePath) {
+        SESSION_KEY = cookie;
+        downloadDirectory = new File(filePath);
+
+        MoodleCrawler crawler = new MoodleCrawler(SESSION_KEY, url);
+        List<MoodleCourse> courses = crawler.scrape();
+
+        rootNode.removeAllChildren();
+        for (MoodleCourse course : courses) {
+            DefaultMutableTreeNode courseNode = new DefaultMutableTreeNode(course);
+            rootNode.add(courseNode);
+        }
+        treeModel.reload();
     }
 
     private int downloadFilesSection(List<ResourceFile> files, DefaultMutableTreeNode node, int completedSections,
@@ -304,37 +368,38 @@ public class MoodleScraperView extends JFrame {
         return completedSections;
     }
 
-    public void downloadFileForFilesOrPastPaper(ResourceFile file) throws IOException{
+    public void downloadFileForFilesOrPastPaper(ResourceFile file) throws IOException {
         long startTime = System.currentTimeMillis();
         File downloadedFile = file.install(downloadDirectory);
         long endTime = System.currentTimeMillis();
 
         downloadTimeinMs += endTime - startTime;
-        
-        if(downloadedFile != null){
+
+        if (downloadedFile != null) {
             totalBytesDownloaded += downloadedFile.length();
         }
 
         downloadedFiles++;
         filesToDownload--;
 
-        etaLabel.setText("ETA: " + getEtaForNFile(filesToDownload));
+        etaLabel.setText("ETA: " + getEtaForNFile(filesToDownload) + " Completed " + this.downloadedSections + " of "
+                + courseTree.getSelectionPaths().length + " courses");
     }
 
-    private String getEtaToDownloadFile(long fileSize){
+    private String getEtaToDownloadFile(long fileSize) {
         long downloadSpeed = totalBytesDownloaded / downloadTimeinMs;
         long eta = fileSize / downloadSpeed;
         return prettyTimeFromMilli(eta);
     }
 
-    private String getEtaForNFile(long files){
+    private String getEtaForNFile(long files) {
         long averageFileSize = totalBytesDownloaded / downloadedFiles;
         long downloadSpeed = totalBytesDownloaded / downloadTimeinMs;
         long eta = (averageFileSize * files) / downloadSpeed;
         return prettyTimeFromMilli(eta);
     }
 
-    private String prettyTimeFromMilli(long milli){
+    private String prettyTimeFromMilli(long milli) {
         long seconds = milli / 1000;
         long minutes = seconds / 60;
         long hours = minutes / 60;

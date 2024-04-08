@@ -35,6 +35,21 @@
       <version>2.11.0</version>
     </dependency>
     <dependency>
+      <groupId>org.pushing-pixels</groupId>
+      <artifactId>radiance-substance</artifactId>
+      <version>4.5.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.jgoodies</groupId>
+      <artifactId>jgoodies-looks</artifactId>
+      <version>2.7.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlinx</groupId>
+      <artifactId>kotlinx-coroutines-swing</artifactId>
+      <version>1.8.0</version>
+    </dependency>
+    <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <version>1.18.20</version>
