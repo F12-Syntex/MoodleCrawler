@@ -25,13 +25,15 @@ public class MoodleCourse {
 
     private String moodleCourseUrl;
     private String courseName;
+    private String courseCode;
     private final String COOKIE;
 
     private Logger logger;
 
-    public MoodleCourse(String courseName, String moodleCourseUrl, String COOKIE) {
+    public MoodleCourse(String courseCode, String courseName, String moodleCourseUrl, String COOKIE) {
         this.moodleCourseUrl = moodleCourseUrl;
         this.courseName = courseName;
+        this.courseCode = courseCode;
         this.COOKIE = COOKIE;
         this.logger = LoggerFactory.buildDefaultLogger();
     }
@@ -136,8 +138,8 @@ public class MoodleCourse {
      *
      * @param folder
      */
-    public void download(File folder) {
-        File courseFolder = new File(folder, FileNameUtils.makeFolderNameSafe(courseName));
+    public void download(File folder, String parentFileName) {
+        File courseFolder = new File(folder, FileNameUtils.makeFolderNameSafe(parentFileName));
         courseFolder.mkdirs(); // Create the course folder if it doesn't exist
 
         try {
@@ -158,4 +160,5 @@ public class MoodleCourse {
         LoggerFactory.buildDefaultLogger()
                 .info("Downloaded course " + courseName + " to " + courseFolder.getAbsolutePath());
     }
+
 }

@@ -284,10 +284,6 @@ public class MoodleScraperView extends JFrame {
 
                         MoodleCourseData data = course.getMetaData();
 
-                        //download the course as a web page
-                        course.download(downloadDirectory);
-                        System.out.println("Downloaded course html: " + name);
-
                         totalSections += data.getPastpapers().size();
                         totalSections += data.getResourceFiles().size();
 
@@ -303,17 +299,24 @@ public class MoodleScraperView extends JFrame {
                         updateProgress(completedSections, totalSections);
                         downloadSection("CourseId: " + data.getCourseId(), node);
 
+                        // String parentFileName = (course.getCourseCode() + " " + data.getCourseName()).replaceAll("\\s+", " ");
+                        String parentFileName = course.getCourseName();
+
+                        // download the course as a web page
+                        course.download(downloadDirectory, parentFileName);
+                        System.out.println("Downloaded course html: " + name);
+
                         // Download files section
                         completedSections++;
                         updateProgress(completedSections, totalSections);
                         completedSections += downloadFilesSection(data.getResourceFiles(), node, completedSections,
-                                totalSections);
+                                totalSections, parentFileName);
 
                         // Download past papers section
                         completedSections++;
                         updateProgress(completedSections, totalSections);
                         completedSections += downloadPastpapersSection(data.getPastpapers(), node, completedSections,
-                                totalSections);
+                                totalSections, parentFileName);
 
                         treeModel.reload(node);
                         downloadedSections++;
@@ -354,7 +357,7 @@ public class MoodleScraperView extends JFrame {
     }
 
     private int downloadFilesSection(List<ResourceFile> files, DefaultMutableTreeNode node, int completedSections,
-            int totalSections) {
+            int totalSections, String parentFileName) {
         DefaultMutableTreeNode filesSection = new DefaultMutableTreeNode("Files");
         for (ResourceFile file : files) {
             System.out.println("Downloading file: " + file.getName());
@@ -363,7 +366,7 @@ public class MoodleScraperView extends JFrame {
             filesSection.add(fileNode);
 
             try {
-                downloadFileForFilesOrPastPaper(file);
+                downloadFileForFilesOrPastPaper(file, parentFileName);
             } catch (Exception e) {
                 currentDownloadLabel.setText("Failed to download file: " + file.getName());
             }
@@ -375,9 +378,9 @@ public class MoodleScraperView extends JFrame {
         return completedSections;
     }
 
-    public void downloadFileForFilesOrPastPaper(ResourceFile file) throws IOException {
+    public void downloadFileForFilesOrPastPaper(ResourceFile file, String parentFileName) throws IOException {
         long startTime = System.currentTimeMillis();
-        File downloadedFile = file.install(downloadDirectory);
+        File downloadedFile = file.install(downloadDirectory, parentFileName);
         long endTime = System.currentTimeMillis();
 
         downloadTimeinMs += endTime - startTime;
@@ -414,14 +417,14 @@ public class MoodleScraperView extends JFrame {
     }
 
     private int downloadPastpapersSection(List<ResourceFile> pastpapers, DefaultMutableTreeNode node,
-            int completedSections, int totalSections) {
+            int completedSections, int totalSections, String parentFileName) {
         DefaultMutableTreeNode pastpapersSection = new DefaultMutableTreeNode("Past Papers");
         for (ResourceFile pastpaper : pastpapers) {
             DefaultMutableTreeNode pastpaperNode = new DefaultMutableTreeNode(pastpaper.getName());
             pastpapersSection.add(pastpaperNode);
 
             try {
-                downloadFileForFilesOrPastPaper(pastpaper);
+                downloadFileForFilesOrPastPaper(pastpaper, parentFileName);
             } catch (Exception e) {
                 e.printStackTrace();
             }

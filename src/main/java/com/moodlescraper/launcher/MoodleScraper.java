@@ -16,8 +16,9 @@ public class MoodleScraper {
         // }
         
 
-        // MoodleCourse randomCourse = new MoodleCourse("Software Engineering", "https://moodle.kent.ac.uk/2023/course/view.php?id=897",
+        // MoodleCourse randomCourse = new MoodleCourse("COMPXXXX", "Software Engineering", "https://moodle.kent.ac.uk/2023/course/view.php?id=897",
         //         SESSION_KEY);
+        // randomCourse.getMetaData();
                 
         // File isntallationFolder = new File("C:\\Users\\synte\\OneDrive - University of Kent\\Desktop\\moodle");
         // // randomCourse.install(isntallationFolder);

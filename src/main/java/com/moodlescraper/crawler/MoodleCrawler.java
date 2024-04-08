@@ -45,8 +45,9 @@ public class MoodleCrawler {
                 if (pageUrl.contains("/view.php?id=")) {
 
                     String courseName = link.text();
+                    String courseCode = courseName.split(" ")[0];
 
-                    MoodleCourse course = new MoodleCourse(courseName, pageUrl, COOKIE);
+                    MoodleCourse course = new MoodleCourse(courseCode, courseName, pageUrl, COOKIE);
                     courses.add(course);
                 }
             });

@@ -30,9 +30,9 @@ public class ResourceFile {
         // this.extention = "pdf";
     }
 
-    public File install(File folder) throws IOException {
+    public File install(File folder, String parentFileName) throws IOException {
 
-        File courseFolder = new File(folder, FileNameUtils.makeFolderNameSafe(parent.getCourseName()));
+        File courseFolder = new File(folder, FileNameUtils.makeFolderNameSafe(parentFileName));
 
         if (!courseFolder.exists()) {
             // System.out.println(courseFolder.getAbsolutePath() + " - " +
