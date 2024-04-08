@@ -43,7 +43,10 @@ public class MoodleCrawler {
             document.select("a").forEach(link -> {
                 String pageUrl = link.attr("href");
                 if (pageUrl.contains("/view.php?id=")) {
-                    MoodleCourse course = new MoodleCourse(pageUrl, COOKIE);
+
+                    String courseName = link.text();
+
+                    MoodleCourse course = new MoodleCourse(courseName, pageUrl, COOKIE);
                     courses.add(course);
                 }
             });

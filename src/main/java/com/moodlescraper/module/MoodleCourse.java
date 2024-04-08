@@ -1,18 +1,19 @@
 package com.moodlescraper.module;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
-import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import com.moodlescraper.crawler.MoodleCrawler;
 import com.moodlescraper.logger.LoggerFactory;
+import com.moodlescraper.utils.FileNameUtils;
 
 import lombok.Data;
 
@@ -20,71 +21,104 @@ import lombok.Data;
 public class MoodleCourse {
 
     private String moodleCourseUrl;
+    private String courseName;
     private final String COOKIE;
 
     private Logger logger;
 
-    public MoodleCourse(String moodleCourseUrl, String COOKIE) {
+    public MoodleCourse(String courseName, String moodleCourseUrl, String COOKIE) {
         this.moodleCourseUrl = moodleCourseUrl;
+        this.courseName = courseName;
         this.COOKIE = COOKIE;
         this.logger = LoggerFactory.buildDefaultLogger();
     }
 
-    public MoodleCrawler install(File folder) {
+    public MoodleCourseData getMetaData() {
+
+        List<ResourceFile> resourceFiles = new ArrayList<>();
+        List<ResourceFile> pastpapers = new ArrayList<>();
+
         try {
+
             Document document = Jsoup.connect(this.moodleCourseUrl).cookie("Cookie", this.COOKIE).get();
 
-            System.out.println(this.COOKIE);
+            String courseName = FileNameUtils.formatCourseName(document.title());
+            int id = Integer.parseInt(this.moodleCourseUrl.split("id=")[1]);
+            resourceFiles.addAll(this.getAllFilesInPage(document));
 
-            System.out.println(document.title());
-
-            // find every image/document/file/video in the page, and print it's url and all
-            // the headers/sections for it
-            Elements resources = document.select("a[href*=resource]");
-
-            String folderName = document.title().toString().replaceAll("[^a-zA-Z0-9.-]", " ").split("\\d+")[0]
-                    .replace("Module", "").trim();
-
-            // create the folder called document.title in the folder
-            File courseFolder = new File(folder, folderName);
-
-            // create the folder
-            boolean folderCreated = courseFolder.mkdir();
-
-            System.out.println("Folder created: " + folderCreated);
-
-            // for every reasource, print it's url and save it in the folder, where the file
-            // should be organised in the proper folders, using the headers/sections
-            for (Element resource : resources) {
-                String resourceUrl = resource.attr("href");
-                String resourceTitle = resource.text();
-
-                System.out.println("Resource URL: " + resourceUrl);
-                System.out.println("Resource Title: " + resourceTitle);
-
-                // create the folder for the resource
-                File resourceFolder = new File(courseFolder, resourceTitle);
-
-                // create the folder
-                boolean resourceFolderCreated = resourceFolder.mkdir();
-
-                System.out.println("Resource Folder created: " + resourceFolderCreated);
-
-                // download the Resource
-                Document resourceDocument = Jsoup.connect(resourceUrl).cookie("Cookie", this.COOKIE).get();
-
-                // save the resource in the resource folder
-                File resourceFile = new File(resourceFolder, resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1));
-                FileUtils.copyURLToFile(new URL(resourceUrl), resourceFile);
-
-                System.out.println("Resource File created: " + resourceFile.exists());
+            // print all the urls in the page
+            Elements links = document.select("a[href]");
+            for (Element link : links) {
+                String linkUrl = link.attr("abs:href");
+                if (linkUrl.contains("pastpaper/")) {
+                    Document pastpaperDocument = Jsoup.connect(linkUrl).cookie("Cookie", this.COOKIE).get();
+                    pastpapers.addAll(this.getAllFilesInPage(pastpaperDocument));
+                }
             }
+
+            MoodleCourseData courseData = new MoodleCourseData(id, resourceFiles, pastpapers, courseName);
+            return courseData;
 
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        return null; // Replace with the appropriate MoodleCrawler instance
+        return null;
+    }
+
+    private List<ResourceFile> getAllFilesInPage(Document document) {
+        List<ResourceFile> files = new ArrayList<>();
+        Map<String, String> headingMap = this.getHeadingMap(document);
+
+        // print the url of every file in the page
+        Elements resources = document.select("a[href*=resource]");
+
+        // print the resource and it's heading
+        for (Element resource : resources) {
+            String resourceUrl = resource.attr("abs:href");
+            ResourceFile resourceFile = new ResourceFile(resourceUrl, resource.text(),
+                    headingMap.getOrDefault(resourceUrl, resource.text()));
+            files.add(resourceFile);
+        }
+
+        Elements pastpapers = document.select("a[href*=pastpaper]");
+        for (Element pastpaper : pastpapers) {
+            String pastpaperUrl = pastpaper.attr("abs:href");
+            if (pastpaperUrl.contains("course.php")) {
+                continue;
+            }
+            ResourceFile pastpaperFile = new ResourceFile(pastpaperUrl, pastpaper.text(),
+                    headingMap.getOrDefault(pastpaperUrl, pastpaper.text()));
+            files.add(pastpaperFile);
+        }
+
+        return files;
+    }
+
+    private Map<String, String> getHeadingMap(Document document) {
+        Elements links = document.select("a[href]");
+        Map<String, String> headingMap = new HashMap<>();
+
+        for (Element link : links) {
+            String linkUrl = link.attr("abs:href"); // Get the absolute URL of the link
+
+            // Find the corresponding header, section, or collapse
+            Element header = link.parents().select(
+                    "div.section > div.sectionname, h3.sectionname, div.content > div.contentnode, div.activityinstance")
+                    .first();
+
+            if (header != null) {
+                String headerText = header.text().trim();
+                headingMap.put(linkUrl, headerText);
+            }
+        }
+
+        return headingMap;
+    }
+
+    @Override
+    public String toString() {
+        return this.courseName;
     }
 
 }
