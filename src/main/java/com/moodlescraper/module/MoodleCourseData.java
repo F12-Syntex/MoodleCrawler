@@ -1,6 +1,11 @@
 package com.moodlescraper.module;
 
+import java.io.File;
 import java.util.List;
+
+import org.apache.commons.io.FileUtils;
+
+import com.moodlescraper.utils.FileNameUtils;
 
 import lombok.Data;
 

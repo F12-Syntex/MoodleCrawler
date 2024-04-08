@@ -57,12 +57,14 @@ public class MoodleScraperView extends JFrame {
 
     private long filesToDownload = 0;
 
+    private long courses = 0;
+
     private JLabel etaLabel;
 
     public MoodleScraperView(String SESSION_KEY) {
         this.SESSION_KEY = SESSION_KEY;
 
-        this.downloadDirectory = new File("C:\\Users\\synte\\OneDrive - University of Kent\\Desktop\\moodle");
+        this.downloadDirectory = new File("D:\\moodle");
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setTitle("Moodle Scraper");
@@ -145,7 +147,7 @@ public class MoodleScraperView extends JFrame {
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
-        filePathField = new JTextField("C:\\Users\\synte\\OneDrive - University of Kent\\Desktop\\moodle");
+        filePathField = new JTextField("D:\\moodle");
         filePathField.setForeground(Color.WHITE);
         filePathField.setBackground(new Color(64, 64, 64));
         inputPanel.add(filePathField, gbc);
@@ -253,6 +255,7 @@ public class MoodleScraperView extends JFrame {
         }
 
         this.downloadedSections = 0;
+        courses = selectedPaths.length;
 
         progressBar.setValue(0);
         progressBar.setStringPainted(true);
@@ -280,6 +283,10 @@ public class MoodleScraperView extends JFrame {
                         completedSections = 0;
 
                         MoodleCourseData data = course.getMetaData();
+
+                        //download the course as a web page
+                        course.download(downloadDirectory);
+                        System.out.println("Downloaded course html: " + name);
 
                         totalSections += data.getPastpapers().size();
                         totalSections += data.getResourceFiles().size();
@@ -358,7 +365,7 @@ public class MoodleScraperView extends JFrame {
             try {
                 downloadFileForFilesOrPastPaper(file);
             } catch (Exception e) {
-                e.printStackTrace();
+                currentDownloadLabel.setText("Failed to download file: " + file.getName());
             }
 
             completedSections++;
@@ -383,7 +390,7 @@ public class MoodleScraperView extends JFrame {
         filesToDownload--;
 
         etaLabel.setText("ETA: " + getEtaForNFile(filesToDownload) + " Completed " + this.downloadedSections + " of "
-                + courseTree.getSelectionPaths().length + " courses");
+                + courses + " courses");
     }
 
     private String getEtaToDownloadFile(long fileSize) {

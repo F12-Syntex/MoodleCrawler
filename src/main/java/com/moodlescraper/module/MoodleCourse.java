@@ -2,12 +2,14 @@ package com.moodlescraper.module;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -55,7 +57,7 @@ public class MoodleCourse {
                     Document pastpaperDocument = Jsoup.connect(linkUrl).cookie("Cookie", this.COOKIE).get();
                     pastpapers.addAll(this.getAllFilesInPage(pastpaperDocument));
 
-                    //set the heading for the pastpapers to be PastPapers
+                    // set the heading for the pastpapers to be PastPapers
                     for (ResourceFile pastpaper : pastpapers) {
                         pastpaper.setHeading("PastPapers" + File.separator + pastpaper.getName());
                     }
@@ -83,7 +85,7 @@ public class MoodleCourse {
         for (Element resource : resources) {
             String resourceUrl = resource.attr("abs:href");
 
-            //get the file extention from the resource
+            // get the file extention from the resource
             ResourceFile resourceFile = new ResourceFile(this, resourceUrl, resource.text(),
                     headingMap.getOrDefault(resourceUrl, resource.text()));
             files.add(resourceFile);
@@ -129,4 +131,31 @@ public class MoodleCourse {
         return this.courseName;
     }
 
+    /**
+     * Download the entire page and CSS-related files to the folder
+     *
+     * @param folder
+     */
+    public void download(File folder) {
+        File courseFolder = new File(folder, FileNameUtils.makeFolderNameSafe(courseName));
+        courseFolder.mkdirs(); // Create the course folder if it doesn't exist
+
+        try {
+            // Download the webpage HTML
+            Document doc = Jsoup.connect(this.moodleCourseUrl).cookie("Cookie", COOKIE).get();
+            File htmlFile = new File(courseFolder, "index.html");
+
+            // Create a folder to store the CSS files
+            File cssFolder = new File(courseFolder, "css");
+            cssFolder.mkdir();
+
+            FileUtils.writeStringToFile(htmlFile, doc.html(), StandardCharsets.UTF_8);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        LoggerFactory.buildDefaultLogger()
+                .info("Downloaded course " + courseName + " to " + courseFolder.getAbsolutePath());
+    }
 }
