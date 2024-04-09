@@ -14,6 +14,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
@@ -118,7 +119,7 @@ public class MoodleScraperView extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         urlField = new JTextField(
-                "https://moodle.kent.ac.uk/2023/course/index.php?categoryid=3&browse=courses&perpage=1000&page=0");
+                "");
         urlField.setForeground(Color.WHITE);
         urlField.setBackground(new Color(64, 64, 64));
         inputPanel.add(urlField, gbc);
@@ -299,7 +300,8 @@ public class MoodleScraperView extends JFrame {
                         updateProgress(completedSections, totalSections);
                         downloadSection("CourseId: " + data.getCourseId(), node);
 
-                        // String parentFileName = (course.getCourseCode() + " " + data.getCourseName()).replaceAll("\\s+", " ");
+                        // String parentFileName = (course.getCourseCode() + " " +
+                        // data.getCourseName()).replaceAll("\\s+", " ");
                         String parentFileName = course.getCourseName();
 
                         // download the course as a web page
@@ -342,18 +344,22 @@ public class MoodleScraperView extends JFrame {
     }
 
     private void performSearch(String url, String cookie, String filePath) {
-        SESSION_KEY = cookie;
-        downloadDirectory = new File(filePath);
+        try {
+            SESSION_KEY = cookie;
+            downloadDirectory = new File(filePath);
 
-        MoodleCrawler crawler = new MoodleCrawler(SESSION_KEY, url);
-        List<MoodleCourse> courses = crawler.scrape();
+            MoodleCrawler crawler = new MoodleCrawler(SESSION_KEY, url);
+            List<MoodleCourse> courses = crawler.scrape();
 
-        rootNode.removeAllChildren();
-        for (MoodleCourse course : courses) {
-            DefaultMutableTreeNode courseNode = new DefaultMutableTreeNode(course);
-            rootNode.add(courseNode);
+            rootNode.removeAllChildren();
+            for (MoodleCourse course : courses) {
+                DefaultMutableTreeNode courseNode = new DefaultMutableTreeNode(course);
+                rootNode.add(courseNode);
+            }
+            treeModel.reload();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Invalid URL or Cookie", "Error", JOptionPane.ERROR_MESSAGE);
         }
-        treeModel.reload();
     }
 
     private int downloadFilesSection(List<ResourceFile> files, DefaultMutableTreeNode node, int completedSections,
